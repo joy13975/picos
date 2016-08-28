@@ -10,7 +10,7 @@
 #define IF_MPI(stm)
 #endif
 
-#include "picos.h"
+#include "libpicos.h"
 
 #define log(...) \
     do {printf(TAG, my_rank); printf(__VA_ARGS__); } while(0)
@@ -73,8 +73,7 @@ int main(int argc, char *argv[])
         {
             picos_checkpoint_now();
 
-            //if argument specifies cold recovery
-            picos_cold_recover("simple-chkpt", 66635);
+            // picos_cold_recover("simple-chkpt", 66635);
         }
 
         log("After itr %d: a=%d, b=%d\n", i, a, b);

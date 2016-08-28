@@ -34,3 +34,5 @@
 
 #chkpt files
 *.picos
+include
+lib
