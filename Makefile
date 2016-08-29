@@ -1,17 +1,20 @@
 CC		= gcc
-CFLAGS	= -O3 -Wall -std=c99 -g
+CFLAGS		= -O3 -Wall -std=c99 -g
 LD		=
-SONAME 	= libpicos
-VERSION = 1
-SOFLAGS = -shared -Wl,-soname,$(SONAME).so.$(VERSION)
-SO_EXT  = so
-PREFIX  = .
+SONAME 		= libpicos
+USONAME		= libpicosu
+VERSION 	= 1
+SOFLAGS 	= -shared -Wl,-soname,$(SONAME).$(VERSION).so
+USOFLAGS	= -shared -Wl,-soname,$(USONAME).$(VERSION).so
+SO_EXT  	= so
+PREFIX  	= .
 
 PLATFORM= $(shell (uname -s))
 
 ifeq ($(PLATFORM), Darwin)
-	SOFLAGS = -dynamiclib -current_version $(VERSION) -compatibility_version $(VERSION).0
-	SO_EXT  = dylib
+	SOFLAGS 	= -dynamiclib -install_name "$(SONAME).$(VERSION).dylib" -current_version $(VERSION) -compatibility_version $(VERSION).0
+	USOFLAGS 	= -dynamiclib -install_name "$(SONAME)u.$(VERSION).dylib" -current_version $(VERSION) -compatibility_version $(VERSION).0
+	SO_EXT  	= dylib
 endif
 
 all: src/libpicos src/libpicosu
@@ -49,10 +52,10 @@ examples: install examples/simple
 	$(CC) $(CFLAGS) -c -fPIC $< -o $@ $(LD)
 
 src/$(SONAME)u: src/util/checksum.o src/util/corrupt.o
-	$(CC) $(CFLAGS) -fPIC $(SOFLAGS) -install_name "$(SONAME)u.$(VERSION).dylib" $^ -o $@.$(SO_EXT) $(LD)
+	$(CC) $(CFLAGS) -fPIC $(USOFLAGS)  $^ -o $@.$(SO_EXT) $(LD)
 
 src/$(SONAME): src/$(SONAME).c
-	$(CC) $(CFLAGS) -fPIC $(SOFLAGS) -install_name "$(SONAME).$(VERSION).dylib" $^ -o $@.$(SO_EXT) $(LD)
+	$(CC) $(CFLAGS) -fPIC $(SOFLAGS)  $^ -o $@.$(SO_EXT) $(LD)
 
 clean:
 	rm -rf src/*.o src/*.so src/*.dylib src/util/*.o include lib
