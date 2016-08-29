@@ -1,5 +1,5 @@
-#ifndef _PICOS_UTIL_H_
-#define _PICOS_UTIL_H_
+#ifndef _PICOS_PRIVATE_H_
+#define _PICOS_PRIVATE_H_
 
 #include <stdbool.h>
 #include <time.h>
@@ -62,4 +62,4 @@ void free_resources();
 
 
 
-#endif //_PICOS_UTIL_H_
+#endif //_PICOS_PRIVATE_H_

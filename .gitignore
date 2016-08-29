@@ -36,3 +36,5 @@
 *.picos
 include
 lib
+.DS_STORE
+

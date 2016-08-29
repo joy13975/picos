@@ -10,30 +10,49 @@ PREFIX  = .
 PLATFORM= $(shell (uname -s))
 
 ifeq ($(PLATFORM), Darwin)
-	SOFLAGS = -dynamiclib -install_name "$(SONAME).$(VERSION).dylib" -current_version $(VERSION) -compatibility_version $(VERSION).0
+	SOFLAGS = -dynamiclib -current_version $(VERSION) -compatibility_version $(VERSION).0
 	SO_EXT  = dylib
 endif
 
-all: src/libpicos
+all: src/libpicos src/libpicosu
 
-install: all
+install_libpicos:
 	mkdir -p $(PREFIX)/include
-	cp src/libpicos.h $(PREFIX)/include/
+	cp src/picos.h $(PREFIX)/include/
 	mkdir -p $(PREFIX)/lib
-	cp src/libpicos.$(SO_EXT) $(PREFIX)/lib/
-	rm -rf $(PREFIX)/lib/libpicos.$(SO_EXT).$(VERSION)
-	ln -s $(PREFIX)/lib/libpicos.$(SO_EXT) $(PREFIX)/lib/libpicos.$(SO_EXT).$(VERSION)
+	cp src/$(SONAME).$(SO_EXT) $(PREFIX)/lib/
+	rm -rf $(PREFIX)/lib/$(SONAME).$(SO_EXT).$(VERSION)
+	ln -s $(PREFIX)/lib/$(SONAME).$(SO_EXT) $(PREFIX)/lib/$(SONAME).$(VERSION).$(SO_EXT)
+
+install_libpicosu:
+	mkdir -p $(PREFIX)/include
+	cp src/picosu.h $(PREFIX)/include/
+	mkdir -p $(PREFIX)/lib
+	cp src/$(SONAME)u.$(SO_EXT) $(PREFIX)/lib/
+	rm -rf $(PREFIX)/lib/$(SONAME)u.$(SO_EXT).$(VERSION)
+	ln -s $(PREFIX)/lib/$(SONAME)u.$(SO_EXT) $(PREFIX)/lib/$(SONAME)u.$(VERSION).$(SO_EXT)
+
+install_picos_types:
+	cp src/picos_types.h $(PREFIX)/include/
+
+install: all install_libpicos install_libpicosu install_picos_types
+
+uninstall:
+	rm -rf $(PREFIX)/include/*picos* $(PREFIX)/lib/*picos*
 
 examples/%: examples/%.c
 	$(CC) $(CFLAGS) -I./include -L./lib $^ -o $@ $(LD) -lpicos
 
 examples: install examples/simple
 
-src/%.o: src/%.c
+%.o: %.c
 	$(CC) $(CFLAGS) -c -fPIC $< -o $@ $(LD)
 
-src/libpicos: src/libpicos.c
-	$(CC) $(CFLAGS) -fPIC $(SOFLAGS) $^ -o $@.$(SO_EXT) $(LD)
+src/$(SONAME)u: src/util/checksum.o src/util/corrupt.o
+	$(CC) $(CFLAGS) -fPIC $(SOFLAGS) -install_name "$(SONAME)u.$(VERSION).dylib" $^ -o $@.$(SO_EXT) $(LD)
+
+src/$(SONAME): src/$(SONAME).c
+	$(CC) $(CFLAGS) -fPIC $(SOFLAGS) -install_name "$(SONAME).$(VERSION).dylib" $^ -o $@.$(SO_EXT) $(LD)
 
 clean:
-	rm -rf src/*.o src/*.so src/*.dylib include lib
+	rm -rf src/*.o src/*.so src/*.dylib src/util/*.o include lib

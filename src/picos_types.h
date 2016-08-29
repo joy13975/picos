@@ -2,10 +2,13 @@
 #define _PICOS_TYPES_H
 
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 typedef uint8_t                     byte;
 typedef unsigned long               ulong;
 typedef unsigned long long          ullong;
+typedef uint32_t                    crc32;
 
 typedef struct Region
 {

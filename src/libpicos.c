@@ -12,7 +12,7 @@
 #include <sys/time.h>
 #include <signal.h>
 
-#include "picos_util.h"
+#include "picos_private.h"
 
 void picos_init()
 {
