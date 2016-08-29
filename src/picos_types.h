@@ -11,6 +11,7 @@ typedef struct Region
 {
     int                 id;
     size_t              size;
+    bool                is_ptr;
     byte                **ptr_to_origin;
     byte                *image;
     struct Region       *next;

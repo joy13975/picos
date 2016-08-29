@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+#include <signal.h>
 
 #include "picos_util.h"
 
@@ -24,7 +25,7 @@ void picos_init()
     {
         picos.verbosity = ez_strtoul(env);
         if (picos.verbosity == -1)
-            elog("Warning: PICOS_DEBUG could not be parsed\n");
+            elog("Warning: PICOS_DEBUG could not be parsed, string: \"%s\"\n", env);
     }
 
     signal(SIGINT, signal_handler);
@@ -38,7 +39,7 @@ void picos_init()
     picos.initialised   = true;
 }
 
-void _picos_register(void **ptr_to_src, size_t size)
+void __picos_register(bool is_ptr, void **ptr_or_double_ptr, size_t size)
 {
     dbg("picos_register()\n");
     check_init("picos_register");
@@ -46,7 +47,8 @@ void _picos_register(void **ptr_to_src, size_t size)
     Region *r               = malloc(sizeof(Region));
     r->id                   = picos.curr_region_id++;
     r->size                 = size;
-    r->ptr_to_origin        = (byte**) ptr_to_src;
+    r->is_ptr               = is_ptr;
+    r->ptr_to_origin        = (byte **) ptr_or_double_ptr;
     r->image                = calloc(1, size);
     r->next                 = NULL;
 
@@ -102,7 +104,7 @@ void picos_checkpoint_now()
     Region *ptr = picos.region_list_head;
     while (ptr)
     {
-        byte *origin = *(ptr->ptr_to_origin);
+        byte *origin = ptr->is_ptr ? *(ptr->ptr_to_origin) : (byte *) (ptr->ptr_to_origin);
 
         dbg("Checkpointing region #%d, %p->%p %ld bytes\n",
             ptr->id, origin, ptr->image, ptr->size);
@@ -137,7 +139,7 @@ void picos_warm_recover()
     Region *ptr = picos.region_list_head;
     while (ptr)
     {
-        byte *origin = *(ptr->ptr_to_origin);
+        byte *origin = ptr->is_ptr ? *(ptr->ptr_to_origin) : (byte *) (ptr->ptr_to_origin);
 
         dbg("Recovering region #%d, %p->%p %ld bytes\n",
             ptr->id, ptr->image, origin, ptr->size);
@@ -168,7 +170,8 @@ void picos_cold_recover(const char* prefix, long from_pid)
     Region *ptr = picos.region_list_head;
     while (ptr)
     {
-        byte *origin = *(ptr->ptr_to_origin);
+        byte *origin = ptr->is_ptr ? *(ptr->ptr_to_origin) : (byte *) (ptr->ptr_to_origin);
+
         dbg("Cold recovery from chkpt file %s; region #%d (%ld bytes)\n",
             chkpt_filename, ptr->id, ptr->size);
 
@@ -198,8 +201,8 @@ void picos_finalise()
 
 void signal_handler(int sig)
 {
-    elog("signal_handler()\n");
-    elog("Caught %s\n", strsignal(sig));
+    fprintf(stderr, "[picos fatal] signal_handler()\n");
+    fprintf(stderr, "[picos fatal] Caught %s\n", strsignal(sig));
 
     free_resources();
 
@@ -208,7 +211,6 @@ void signal_handler(int sig)
 
 void get_time_string(char **buffer_ptr, const char* fmt)
 {
-    dbg("get_time_string()\n");
     struct tm *tm;
     time_t t;
 
@@ -222,7 +224,6 @@ void get_time_string(char **buffer_ptr, const char* fmt)
 
 double get_unix_ms()
 {
-    dbg("get_unix_ms()\n");
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_usec + tv.tv_sec * 1e6;
@@ -230,15 +231,13 @@ double get_unix_ms()
 
 ulong ez_strtoul(const char *restrict str)
 {
-    dbg("ez_strtoul()\n");
     char *invalid;
     ulong ul = strtoul(str, &invalid, 10);
-    return invalid ? -1 : ul;
+    return (*invalid == '\0') ? ul : -1;
 }
 
 void format_ddump_filename(char **dst, const char *prefix, long cold_rcvr_pid)
 {
-    dbg("format_ddump_filename()\n");
     long pid = 0;
     char *suffix = "";
 
@@ -284,10 +283,8 @@ void format_ddump_filename(char **dst, const char *prefix, long cold_rcvr_pid)
 
 void ddump_flush()
 {
-    dbg("ddump_flush()\n");
-
     //queue async write
-    while (msync(picos.ddump_file_ptr, picos.tot_size, MS_SYNC) == -1)
+    while (msync(picos.ddump_file_ptr, picos.tot_size, MS_ASYNC) == -1)
     {
         if (errno != EBUSY)
             die("daemon_disk_dump_flush(): msync() failed with error: %s\n", strerror(errno));
@@ -297,6 +294,7 @@ void ddump_flush()
         writing between user checkpoints
         then sleeping 50ms is reasonable
         */
+        log("disk wait\n");
         usleep(50 * 1000);
     }
 

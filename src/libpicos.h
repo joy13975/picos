@@ -3,8 +3,17 @@
 
 void picos_init();
 
-#define picos_register(a, b) _picos_register((void**) a, b)
-void _picos_register(void **ptr_to_src, size_t bytes);
+void picos_register_primitive(void *ptr_to_prim, size_t size)
+{
+    __picos_register(false, (void **) ptr_to_prim, size);
+}
+
+void picos_register_ptr(void **ptr_to_ptr_to_data, size_t size)
+{
+    __picos_register(true, ptr_to_ptr_to_data, size);
+}
+
+void __picos_register(bool is_ptr, void **ptr_or_double_ptr, size_t size);
 
 void picos_enable_disk_dump(const char* prefix, int every_n_chkpts);
 

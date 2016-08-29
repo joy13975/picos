@@ -36,11 +36,10 @@ int main(int argc, char *argv[])
     int a = 1, b = 1;
     const int lim = 5;
     int i = 0, j = 0;
-    int *a_ptr = &a, *i_ptr = &i;
 
     picos_init();
-    picos_register((void**) &(a_ptr), sizeof(int));
-    picos_register((void**) &(i_ptr), sizeof(int));
+    picos_register_primitive(&a, sizeof(int));
+    picos_register_primitive(&i, sizeof(int));
     picos_enable_disk_dump("simple-chkpt", 1);
 
     log("Will do %d iterations\n", lim);
