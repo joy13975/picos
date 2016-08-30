@@ -226,7 +226,7 @@ double get_unix_ms()
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    return tv.tv_usec + tv.tv_sec * 1e6;
+    return (tv.tv_usec + tv.tv_sec * 1e6) / 1000;
 }
 
 ulong ez_strtoul(const char *restrict str)
