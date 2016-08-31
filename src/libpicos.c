@@ -12,7 +12,31 @@
 #include <sys/time.h>
 #include <signal.h>
 
+#include "picos.h"
 #include "picos_private.h"
+
+struct {
+    bool            initialised;
+    int             verbosity;
+
+    int             curr_region_id;
+    int             chkpt_counter;
+    ullong          tot_size;
+    picos_region          *region_list_head;
+    picos_region          *region_list_end;
+
+    bool            do_ddump;
+    int             ddump_interval;
+
+    int             ddump_fd;
+    byte            *ddump_file_ptr, *ddump_curr_ptr;
+    ullong          ddump_file_bytes;
+    char            *ddump_filename;
+
+    bool            text_registered;
+    picos_page      *page_list_head;
+    picos_page      *page_list_end;
+} picos = {0};
 
 void picos_init()
 {
@@ -39,12 +63,39 @@ void picos_init()
     picos.initialised   = true;
 }
 
+int vma_iter_callback(void *page_list_end_ptr, uintptr_t start, uintptr_t end, unsigned int flags)
+{
+    picos_page *page_list_end  = *((picos_page **) page_list_end_ptr);
+    page_list_end->start = (byte *) start;
+    page_list_end->end   = (byte *) end;
+    page_list_end->flags = flags;
+    page_list_end->next  = (*((picos_page **) page_list_end_ptr) = calloc(1, sizeof(picos_page)));
+
+    return 0;
+}
+
+picos_page *picos_get_xpages()
+{
+    dbg("picos_register_text()\n");
+    if (picos.text_registered)
+        die("must never call picos_register_text() twice\n");
+    picos.text_registered = true;
+    picos.page_list_head = (picos.page_list_end = calloc(1, sizeof(picos_page)));
+
+    vma_iterate(vma_iter_callback, (void *) & (picos.page_list_end));
+
+    free(picos.page_list_end->next);
+    picos.page_list_end->next = NULL;
+
+    return picos.page_list_head;
+}
+
 void __picos_register(bool is_ptr, void **ptr_or_double_ptr, size_t size)
 {
     dbg("picos_register()\n");
     check_init("picos_register");
 
-    Region *r               = malloc(sizeof(Region));
+    picos_region *r               = malloc(sizeof(picos_region));
     r->id                   = picos.curr_region_id++;
     r->size                 = size;
     r->is_ptr               = is_ptr;
@@ -57,6 +108,16 @@ void __picos_register(bool is_ptr, void **ptr_or_double_ptr, size_t size)
                               (picos.region_list_end->next = r);
 
     picos.tot_size          += size;
+}
+
+void picos_register_primitive(void *ptr_to_prim, size_t size)
+{
+    __picos_register(false, (void **) ptr_to_prim, size);
+}
+
+void picos_register_ptr(void **ptr_to_ptr_to_data, size_t size)
+{
+    __picos_register(true, ptr_to_ptr_to_data, size);
 }
 
 void picos_enable_disk_dump(const char *prefix, int every_n_chkpts)
@@ -101,7 +162,7 @@ void picos_checkpoint_now()
         picos.do_ddump &&
         (picos.chkpt_counter % picos.ddump_interval == 0);
 
-    Region *ptr = picos.region_list_head;
+    picos_region *ptr = picos.region_list_head;
     while (ptr)
     {
         byte *origin = ptr->is_ptr ? *(ptr->ptr_to_origin) : (byte *) (ptr->ptr_to_origin);
@@ -136,7 +197,7 @@ void picos_warm_recover()
     dbg("picos_warm_recover()\n");
     check_init("picos_warm_recover");
 
-    Region *ptr = picos.region_list_head;
+    picos_region *ptr = picos.region_list_head;
     while (ptr)
     {
         byte *origin = ptr->is_ptr ? *(ptr->ptr_to_origin) : (byte *) (ptr->ptr_to_origin);
@@ -167,7 +228,7 @@ void picos_cold_recover(const char* prefix, long from_pid)
     if (chkpt_ptr == MAP_FAILED)
         die("could not map checkpoint file into memory (%s)\n", strerror(errno));
 
-    Region *ptr = picos.region_list_head;
+    picos_region *ptr = picos.region_list_head;
     while (ptr)
     {
         byte *origin = ptr->is_ptr ? *(ptr->ptr_to_origin) : (byte *) (ptr->ptr_to_origin);
@@ -307,12 +368,12 @@ void free_resources()
     dbg("free_resources()\n");
 
     //free regions
-    Region *ptr = picos.region_list_head;
+    picos_region *ptr = picos.region_list_head;
     if (ptr)
     {
         do
         {
-            Region *tmp = ptr;
+            picos_region *tmp = ptr;
             ptr = ptr->next;
 
             free(tmp->image);

@@ -10,7 +10,7 @@
 #define IF_MPI(stm)
 #endif
 
-#include "libpicos.h"
+#include "picos.h"
 
 #define log(...) \
     do {printf(TAG, my_rank); printf(__VA_ARGS__); } while(0)
@@ -38,6 +38,8 @@ int main(int argc, char *argv[])
     int i = 0, j = 0;
 
     picos_init();
+    // picos_register_text();
+    // while(true){};
     picos_register_primitive(&a, sizeof(int));
     picos_register_primitive(&i, sizeof(int));
     picos_enable_disk_dump("simple-chkpt", 1);

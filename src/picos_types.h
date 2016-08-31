@@ -10,33 +10,23 @@ typedef unsigned long               ulong;
 typedef unsigned long long          ullong;
 typedef uint32_t                    crc32;
 
-typedef struct Region
+typedef struct picos_region
 {
-    int                 id;
-    size_t              size;
-    bool                is_ptr;
-    byte                **ptr_to_origin;
-    byte                *image;
-    struct Region       *next;
-} Region;
+    int                     id;
+    size_t                  size;
+    bool                    is_ptr;
+    byte                    **ptr_to_origin;
+    byte                    *image;
+    struct picos_region     *next;
+} picos_region;
 
-struct {
-    bool            initialised;
-    int             verbosity;
-
-    int             curr_region_id;
-    int             chkpt_counter;
-    ullong          tot_size;
-    Region          *region_list_head;
-    Region          *region_list_end;
-
-    bool            do_ddump;
-    int             ddump_interval;
-
-    int             ddump_fd;
-    byte            *ddump_file_ptr, *ddump_curr_ptr;
-    ullong          ddump_file_bytes;
-    char            *ddump_filename;
-} picos = {0};
+typedef struct picos_page
+{
+    int                     id;
+    byte                    *start;
+    byte                    *end;
+    int                     flags;
+    struct picos_page       *next;
+} picos_page;
 
 #endif /*_PICOS_TYPES_H*/

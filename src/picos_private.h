@@ -1,7 +1,6 @@
 #ifndef _PICOS_PRIVATE_H_
 #define _PICOS_PRIVATE_H_
 
-#include <stdbool.h>
 #include <time.h>
 
 #if     defined(USE_MPI)
@@ -14,8 +13,6 @@
 #endif  /*USE_MPI*/
 
 #include "picos_types.h"
-
-
 
 
 #define LIKE_STM(stms)          do{stms}while(0)

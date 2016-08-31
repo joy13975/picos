@@ -1,44 +1,32 @@
-CC		= gcc
+CC			= gcc
 CFLAGS		= -O3 -Wall -std=c99 -g
-LD		=
+LD			=
 SONAME 		= libpicos
 USONAME		= libpicosu
 VERSION 	= 1
 SOFLAGS 	= -shared -Wl,-soname,$(SONAME).$(VERSION).so
-USOFLAGS	= -shared -Wl,-soname,$(USONAME).$(VERSION).so
 SO_EXT  	= so
 PREFIX  	= .
 
-PLATFORM= $(shell (uname -s))
+PLATFORM	= $(shell (uname -s))
 
 ifeq ($(PLATFORM), Darwin)
 	SOFLAGS 	= -dynamiclib -install_name "$(SONAME).$(VERSION).dylib" -current_version $(VERSION) -compatibility_version $(VERSION).0
-	USOFLAGS 	= -dynamiclib -install_name "$(SONAME)u.$(VERSION).dylib" -current_version $(VERSION) -compatibility_version $(VERSION).0
 	SO_EXT  	= dylib
 endif
 
-all: src/libpicos src/libpicosu
+all: src/libpicos
 
 install_libpicos:
 	mkdir -p $(PREFIX)/include
 	cp src/picos.h $(PREFIX)/include/
+	cp src/picos_types.h $(PREFIX)/include/
 	mkdir -p $(PREFIX)/lib
 	cp src/$(SONAME).$(SO_EXT) $(PREFIX)/lib/
 	rm -rf $(PREFIX)/lib/$(SONAME).$(SO_EXT).$(VERSION)
 	ln -s $(PREFIX)/lib/$(SONAME).$(SO_EXT) $(PREFIX)/lib/$(SONAME).$(VERSION).$(SO_EXT)
 
-install_libpicosu:
-	mkdir -p $(PREFIX)/include
-	cp src/picosu.h $(PREFIX)/include/
-	mkdir -p $(PREFIX)/lib
-	cp src/$(SONAME)u.$(SO_EXT) $(PREFIX)/lib/
-	rm -rf $(PREFIX)/lib/$(SONAME)u.$(SO_EXT).$(VERSION)
-	ln -s $(PREFIX)/lib/$(SONAME)u.$(SO_EXT) $(PREFIX)/lib/$(SONAME)u.$(VERSION).$(SO_EXT)
-
-install_picos_types:
-	cp src/picos_types.h $(PREFIX)/include/
-
-install: all install_libpicos install_libpicosu install_picos_types
+install: all install_libpicos
 
 uninstall:
 	rm -rf $(PREFIX)/include/*picos* $(PREFIX)/lib/*picos*
@@ -51,10 +39,7 @@ examples: install examples/simple
 %.o: %.c
 	$(CC) $(CFLAGS) -c -fPIC $< -o $@ $(LD)
 
-src/$(SONAME)u: src/util/checksum.o src/util/corrupt.o
-	$(CC) $(CFLAGS) -fPIC $(USOFLAGS)  $^ -o $@.$(SO_EXT) $(LD)
-
-src/$(SONAME): src/$(SONAME).c
+src/$(SONAME): src/$(SONAME).c src/util/vma-iter.c src/util/checksum.c src/util/corrupt.c src/util/bits.c
 	$(CC) $(CFLAGS) -fPIC $(SOFLAGS)  $^ -o $@.$(SO_EXT) $(LD)
 
 clean:
