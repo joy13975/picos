@@ -55,6 +55,7 @@ crc32 checksum_new(void const *restrict pData, size_t size)
 
     return crc;
 }
+#include <stdio.h>
 
 void checksum_cascade(crc32 *restrict crc, void const *restrict pData, size_t size)
 {

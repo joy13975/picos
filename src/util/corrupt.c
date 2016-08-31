@@ -1,3 +1,7 @@
+#if !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
 #include <stdlib.h>
 
 #if !defined(FLIP_SEED)
