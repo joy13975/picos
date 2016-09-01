@@ -1,7 +1,13 @@
+CC=gcc
+DEF=
+
 all: simple
 
 simple: simple.c
-	gcc simple.c -o simple -lpicos
+	$(CC) $(DEF) simple.c -o simple -lpicos
 
-clean: 
-	rm -rf a.out simple simple-*
+clear:
+	rm -rf  simple-*
+
+clean:
+	rm -rf a.out simple

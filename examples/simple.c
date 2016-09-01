@@ -74,7 +74,7 @@ int main(int argc, char *argv[])
         {
             picos_checkpoint_now();
 
-            // picos_cold_recover("simple-chkpt", 66635);
+            // picos_cold_recover("simple-chkpt", 65502);
         }
 
         log("After itr %d: a=%d, b=%d\n", i, a, b);
@@ -89,7 +89,6 @@ int main(int argc, char *argv[])
     }
 
     log("Protected(a)=%d, Unprotected(b)=%d\n", a, b);
-
 
     picos_finalise();
 

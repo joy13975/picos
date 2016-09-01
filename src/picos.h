@@ -17,13 +17,21 @@ void picos_register_primitive(void *ptr_to_prim, size_t size);
 
 void picos_register_ptr(void **ptr_to_ptr_to_data, size_t size);
 
-void picos_enable_disk_dump(const char* prefix, int every_n_chkpts);
+#if __has_include("mpi.h")
+#define picos_enable_disk_dump(prefix, interval) __picos_enable_disk_dump(true, prefix, interval)
+#define picos_cold_recover(prefix, from_pid) __picos_cold_recover(true, prefix, from_pid)
+#else
+#define picos_enable_disk_dump(prefix, interval) __picos_enable_disk_dump(false, prefix, interval)
+#define picos_cold_recover(prefix, from_pid) __picos_cold_recover(false, prefix, from_pid)
+#endif
+
+void __picos_enable_disk_dump(bool mpicc, const char* prefix, int every_n_chkpts);
 
 void picos_checkpoint_now();
 
 void picos_warm_recover();
 
-void picos_cold_recover(const char* prefix, long from_pid);
+void __picos_cold_recover(bool mpicc, const char* prefix, long from_pid);
 
 void picos_finalise();
 

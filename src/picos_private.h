@@ -40,7 +40,7 @@ inline void PRINT_PICOS_TAG()
 {
     char *buffer;
     get_time_string(&buffer, "%Y-%m-%d %H:%M:%S");
-    printf("[picos %s] ", buffer);
+    printf("[PICOS %s] ", buffer);
     free(buffer);
 }
 
@@ -50,7 +50,7 @@ double get_unix_ms();
 
 ulong ez_strtoul(const char *restrict str);
 
-void format_ddump_filename(char **dst, const char *prefix, long cold_rcvr_pid);
+void format_ddump_filename(bool mpicc, char **dst, const char *prefix, long cold_rcvr_pid);
 
 void ddump_flush();
 

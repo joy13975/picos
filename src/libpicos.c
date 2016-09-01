@@ -130,7 +130,7 @@ void picos_register_ptr(void **ptr_to_ptr_to_data, size_t size)
     __picos_register(true, ptr_to_ptr_to_data, size);
 }
 
-void picos_enable_disk_dump(const char *prefix, int every_n_chkpts)
+void __picos_enable_disk_dump(bool mpicc, const char *prefix, int every_n_chkpts)
 {
     dbg("picos_enable_disk_dump()\n");
     check_init("picos_enable_disk_dump");
@@ -138,22 +138,18 @@ void picos_enable_disk_dump(const char *prefix, int every_n_chkpts)
     picos.do_ddump          = true;
     picos.ddump_interval    = every_n_chkpts;
 
-    format_ddump_filename(&(picos.ddump_filename), prefix, 0);
+    format_ddump_filename(mpicc, &(picos.ddump_filename), prefix, 0);
     dbg("ddump_filename set up as \"%s\"\n", picos.ddump_filename);
 
-    //create checkpoint file with the right specs
-    FILE *fp = fopen(picos.ddump_filename, "w");
-    fseek(fp, picos.tot_size, SEEK_SET);
-
-    //make a mark at the final (extra) byte of the file to create the sized file
-    fputc('\0', fp);
-    fclose(fp);
-
-    //map checkpoint file into memory
-    picos.ddump_fd  = open(picos.ddump_filename, O_RDWR, 0600);
+    //open file exclusively
+    picos.ddump_fd  = open(picos.ddump_filename, O_RDWR | O_CREAT | O_EXCL, 0600);
     if (!picos.ddump_fd)
         die("Could not open chkpt file \"%s\" (%s)\n", picos.ddump_filename, strerror(errno));
 
+    //create size
+    ftruncate(picos.ddump_fd, picos.tot_size);
+
+    //map file into memory
     picos.ddump_file_ptr = mmap(0, picos.tot_size, PROT_WRITE, MAP_SHARED, picos.ddump_fd, 0);
     if (picos.ddump_file_ptr == MAP_FAILED)
         die("Could not map chkpt file into memory (%s)\n", strerror(errno));
@@ -221,22 +217,22 @@ void picos_warm_recover()
     }
 }
 
-void picos_cold_recover(const char* prefix, long from_pid)
+void __picos_cold_recover(bool mpicc, const char* prefix, long from_pid)
 {
     dbg("picos_cold_recover(%ld)\n", from_pid);
     check_init("picos_cold_recover");
 
     char *chkpt_filename;
-    format_ddump_filename(&(chkpt_filename), prefix, from_pid);
+    format_ddump_filename(mpicc, &(chkpt_filename), prefix, from_pid);
 
     //map checkpoint file into memory
     int chkpt_fd = open(chkpt_filename, O_RDWR, 0600);
     if (!chkpt_fd)
-        die("could not open checkpoint file \"%s\" (%s)\n", chkpt_filename, strerror(errno));
+        die("Could not open checkpoint file \"%s\" (%s)\n", chkpt_filename, strerror(errno));
 
-    byte *chkpt_ptr = mmap(0, picos.tot_size, PROT_WRITE, MAP_SHARED, chkpt_fd, 0);
+    byte *chkpt_ptr = mmap(0, picos.tot_size, PROT_READ, MAP_SHARED, chkpt_fd, 0);
     if (chkpt_ptr == MAP_FAILED)
-        die("could not map checkpoint file into memory (%s)\n", strerror(errno));
+        die("Could not map checkpoint file into memory (%s)\n", strerror(errno));
 
     picos_region *ptr = picos.region_list_head;
     while (ptr)
@@ -272,8 +268,8 @@ void picos_finalise()
 
 void signal_handler(int sig)
 {
-    fprintf(stderr, "[picos fatal] signal_handler()\n");
-    fprintf(stderr, "[picos fatal] Caught %s\n", strsignal(sig));
+    fprintf(stderr, "[PICOS fatal] signal_handler()\n");
+    fprintf(stderr, "[PICOS fatal] Caught %s\n", strsignal(sig));
 
     free_resources();
 
@@ -307,40 +303,50 @@ ulong ez_strtoul(const char *restrict str)
     return (*invalid == '\0') ? ul : -1;
 }
 
-void format_ddump_filename(char **dst, const char *prefix, long cold_rcvr_pid)
+void format_ddump_filename(bool mpicc, char **dst, const char *prefix, long cold_rcvr_pid)
 {
     long pid = 0;
     char *suffix = "";
 
     IF_MPI(
     {
-        int mpi_init = 0;
-        MPI_Initialized(&mpi_init);
-
-        if (mpi_init)
+        if (mpicc)
         {
-            int my_rank;
-            MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
+            int mpi_init = 0;
+            MPI_Initialized(&mpi_init);
 
-            long master_pid = 0;
-            if (!my_rank)
-                master_pid = (long) getpid();
-            MPI_Bcast(&master_pid, 1, MPI_LONG, 0, MPI_COMM_WORLD);
-            dbg("Rank %d, master_pid=%ld\n", my_rank, master_pid);
+            if (mpi_init)
+            {
+                int my_rank;
+                MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 
-            pid = master_pid;
+                long master_pid = 0;
+                if (!my_rank)
+                    master_pid = (long) getpid();
+                MPI_Bcast(&master_pid, 1, MPI_LONG, 0, MPI_COMM_WORLD);
+                dbg("Rank %d, master_pid=%ld\n", my_rank, master_pid);
 
-            asprintf(&suffix, "R%d.", my_rank);
+                pid = master_pid;
+
+                asprintf(&suffix, "R%d.", my_rank);
+            }
+            else
+            {
+                die("MPI_Init() must be called before setting up disk dump\n");
+            }
         }
         else
         {
-            die("MPI_Init() must be called before setting up disk dump\n");
+            //picos compiled with mpicc but client is not
+            pid = getpid();
         }
     }
     );
 
     IFN_MPI(
     {
+        if (mpicc)
+            die("Client is compiled with MPI but PICOS was not!\n");
         pid = getpid();
     }
     );
@@ -354,6 +360,8 @@ void format_ddump_filename(char **dst, const char *prefix, long cold_rcvr_pid)
 
 void ddump_flush()
 {
+    dbg("ddump_flush()\n");
+
     //queue async write
     while (msync(picos.ddump_file_ptr, picos.tot_size, MS_ASYNC) == -1)
     {
@@ -393,11 +401,18 @@ void free_resources()
 
     if (picos.do_ddump)
     {
-        //unmap and close checkpoint file
+        //unmap, close and delete checkpoint file
         if (picos.ddump_file_ptr)
             munmap(picos.ddump_file_ptr, picos.tot_size);
 
         if (picos.ddump_fd)
             close(picos.ddump_fd);
+
+        if (picos.ddump_filename)
+        {
+            unlink(picos.ddump_filename);
+            free(picos.ddump_filename);
+        }
+
     }
 }

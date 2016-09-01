@@ -7,6 +7,7 @@ VERSION 	= 1
 SOFLAGS 	= -shared -Wl,-soname,$(SONAME).$(VERSION).so
 SO_EXT  	= so
 PREFIX  	= .
+DEF 		=
 
 PLATFORM	= $(shell (uname -s))
 
@@ -14,6 +15,8 @@ ifeq ($(PLATFORM), Darwin)
 	SOFLAGS 	= -dynamiclib -install_name "$(SONAME).$(VERSION).dylib" -current_version $(VERSION) -compatibility_version $(VERSION).0
 	SO_EXT  	= dylib
 endif
+
+COMPILE 	= $(CC) $(DEF) $(CFLAGS)
 
 all: src/libpicos
 
@@ -32,15 +35,15 @@ uninstall:
 	rm -rf $(PREFIX)/include/*picos* $(PREFIX)/lib/*picos*
 
 examples/%: examples/%.c
-	$(CC) $(CFLAGS) -I./include -L./lib $^ -o $@ $(LD) -lpicos
+	$(COMPILE) -I./include -L./lib $^ -o $@ $(LD) -lpicos
 
 examples: install examples/simple
 
 %.o: %.c
-	$(CC) $(CFLAGS) -c -fPIC $< -o $@ $(LD)
+	$(COMPILE) -c -fPIC $< -o $@ $(LD)
 
 src/$(SONAME): src/$(SONAME).c src/util/vma-iter.c src/util/checksum.c src/util/corrupt.c src/util/bits.c
-	$(CC) $(CFLAGS) -fPIC $(SOFLAGS)  $^ -o $@.$(SO_EXT) $(LD)
+	$(COMPILE) -fPIC $(SOFLAGS)  $^ -o $@.$(SO_EXT) $(LD)
 
 clean:
 	rm -rf src/*.o src/*.so src/*.dylib src/util/*.o include lib
