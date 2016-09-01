@@ -3,7 +3,9 @@ PICOS
 
 A fast, lightweight Checkpoint-Restart library.
 - [x] In-RAM selective data backup
+- [X] Recovery from RAM backup
 - [x] On-disk selective data backup
+- [X] Recovery from disk backup
 - [ ] Full program state backup (involves kernel code)
 
 Installaion
