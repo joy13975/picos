@@ -33,7 +33,6 @@ struct {
     ullong          ddump_file_bytes;
     char            *ddump_filename;
 
-    bool            text_registered;
     picos_page      *page_list_head;
     picos_page      *page_list_end;
 } picos = {0};
@@ -79,10 +78,6 @@ int vma_iter_callback(void *page_list_end_ptr, uintptr_t start, uintptr_t end, u
 
 picos_page *picos_get_xpages()
 {
-    dbg("picos_register_text()\n");
-    if (picos.text_registered)
-        die("must never call picos_register_text() twice\n");
-    picos.text_registered = true;
     picos.page_list_head = (picos.page_list_end = calloc(1, sizeof(picos_page)));
 
     vma_iterate(vma_iter_callback, (void *) & (picos.page_list_end));

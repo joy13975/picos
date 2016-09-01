@@ -8,6 +8,7 @@
 typedef uint8_t                     byte;
 typedef unsigned long               ulong;
 typedef unsigned long long          ullong;
+typedef long long                   llong;
 typedef uint32_t                    crc32;
 
 typedef struct picos_region
