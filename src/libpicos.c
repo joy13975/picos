@@ -62,9 +62,9 @@ void picos_init()
     picos.initialised   = true;
 }
 
-int vma_iter_callback(void *page_list_end_ptr, uintptr_t start, uintptr_t end, unsigned int flags)
+int vma_filter_ro(void *page_list_end_ptr, uintptr_t start, uintptr_t end, unsigned int flags)
 {
-    if (PAGE_HAS_X(flags))
+    if (PAGE_HAS_R(flags) && !PAGE_HAS_W(flags) && !PAGE_HAS_X(flags))
     {
         picos_page *page_list_end  = *((picos_page **) page_list_end_ptr);
         page_list_end->start = (byte *) start;
@@ -76,11 +76,11 @@ int vma_iter_callback(void *page_list_end_ptr, uintptr_t start, uintptr_t end, u
     return 0;
 }
 
-picos_page *picos_get_xpages()
+picos_page *picos_get_ropages()
 {
     picos.page_list_head = (picos.page_list_end = calloc(1, sizeof(picos_page)));
 
-    vma_iterate(vma_iter_callback, (void *) & (picos.page_list_end));
+    vma_iterate(vma_filter_ro, (void *) & (picos.page_list_end));
 
     //delete last empty page
     picos_page *page = picos.page_list_head, *tmp1 = NULL, *tmp2 = NULL;

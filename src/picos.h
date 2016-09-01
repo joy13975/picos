@@ -11,7 +11,7 @@
 
 void picos_init();
 
-picos_page *picos_get_xpages();
+picos_page *picos_get_ropages();
 
 void picos_register_primitive(void *ptr_to_prim, size_t size);
 
