@@ -1,7 +1,7 @@
 PICOS
 -----
 
-A fast, lightweight Checkpoint-Restart library.
+A fast, lightweight checkpoint & restart library. PCRL?
 - [x] In-RAM selective data backup
 - [X] Recovery from RAM backup
 - [x] On-disk selective data backup
