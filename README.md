@@ -8,6 +8,8 @@ A fast, lightweight checkpoint & restart library. PCRL?
 - [X] Recovery from disk backup
 - [ ] Full program state backup (involves kernel code)
 
+![alt tag](https://github.com/joy13975/picos/blob/master/README_res/knl_overheads.png)
+
 Installaion
 -----------
 * Without MPI support
