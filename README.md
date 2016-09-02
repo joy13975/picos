@@ -10,10 +10,14 @@ A fast, lightweight checkpoint & restart library. PCRL?
 
 Installaion
 -----------
+* Without MPI support
 ```
-git clone git@github.com:joy13975/picos.git
-cd picos
 make install PREFIX=<your_library_prefix>
 ```
 
-Note that by default, ```make install``` will NOT install to your root.
+* With MPI support
+```
+make install PREFIX=<your_library_prefix> CC=mpicc DEF=-DUSE_MPI
+```
+
+Note: by default, ```make install``` will NOT install to your root.
