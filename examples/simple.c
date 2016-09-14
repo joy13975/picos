@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
     for (i = 0; i < lim; i++)
     {
         //fail half way
-        bool fail = (j == lim - (lim / 2));
         log("Before itr %d: a=%d, b=%d\n", i, a, b);
 
         IF_MPI(
@@ -61,22 +60,34 @@ int main(int argc, char *argv[])
         a *= (1 + i);
         b *= (1 + i);
 
+        crc32 oldcrc_a = checksum_new(&a, sizeof(a)), oldcrc_b = checksum_new(&b, sizeof(b));
+        bool fail = (j == lim - (lim / 2));
         if (fail)
         {
             log("Before corrupt: a=%d, b=%d\n", a, b);
-            b = (a ^= 0x1U);
+
+            //bit flip injection with picos utility
+            flip_bit(&b, sizeof(b));
+
             log("After corrupt: a=%d, b=%d\n", a, b);
+        }
+
+        if (checksum_new(&a, sizeof(a)) != oldcrc_a ||
+            checksum_new(&b, sizeof(b)) != oldcrc_b)
+        {
+            log("Faul detected - requesting recovery\n");
 
             picos_warm_recover();
-            log("Recovered - now redo iteration\n");
+
+            log("Recovery completed\n");
         }
         else
         {
             picos_checkpoint_now();
 
+            //recover from checkpoint file given a PID (master PID in case of MPI)
             // picos_cold_recover("simple-chkpt", 65502);
         }
-
         log("After itr %d: a=%d, b=%d\n", i, a, b);
         j++;
 
