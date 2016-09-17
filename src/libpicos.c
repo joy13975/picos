@@ -64,7 +64,7 @@ void picos_init()
 
 int vma_filter_ro(void *page_list_end_ptr, uintptr_t start, uintptr_t end, unsigned int flags)
 {
-    if (PAGE_HAS_R(flags) && !PAGE_HAS_W(flags) && !PAGE_HAS_X(flags))
+    if (PAGE_HAS_R(flags) && !PAGE_HAS_W(flags))
     {
         picos_page *page_list_end  = *((picos_page **) page_list_end_ptr);
         page_list_end->start = (byte *) start;
