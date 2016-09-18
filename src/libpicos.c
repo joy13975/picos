@@ -143,7 +143,7 @@ void __picos_enable_disk_dump(bool mpicc, const char *prefix, int every_n_chkpts
 
     //open file exclusively
     picos.ddump_fd  = open(picos.ddump_filename, O_RDWR | O_CREAT | O_EXCL, 0600);
-    if (!picos.ddump_fd)
+    if (picos.ddump_fd < 0)
         die("Could not open chkpt file \"%s\" (%s)\n", picos.ddump_filename, strerror(errno));
 
     //create size
