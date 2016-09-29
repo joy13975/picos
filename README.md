@@ -8,18 +8,19 @@ A fast, lightweight checkpoint & restart library. PCRL?
 - [X] Recovery from disk backup
 - [ ] Full program state backup (involves kernel code)
 
-![alt tag](https://github.com/joy13975/picos/blob/master/README_res/knl_overheads.png)
+![alt tag](https://github.com/joy13975/picos/blob/master/README_res/overheads_knl.png)
 
 Installaion
 -----------
-* Without MPI support
+
+* With MPI support
 ```
 make install PREFIX=<your_library_prefix>
 ```
 
-* With MPI support
+* Without MPI support
 ```
-make install PREFIX=<your_library_prefix> CC=mpicc DEF=-DUSE_MPI
+make install PREFIX=<your_library_prefix> CC=gcc DEF=
 ```
 
 Note: by default, ```make install``` will NOT install to your root.

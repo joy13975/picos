@@ -1,4 +1,4 @@
-CC			= gcc
+CC			= mpicc
 CFLAGS		= -O3 -Wall -std=c99 -g
 LD			=
 SONAME 		= libpicos
@@ -7,7 +7,7 @@ VERSION 	= 1
 SOFLAGS 	= -shared -Wl,-soname,$(SONAME).$(VERSION).so
 SO_EXT  	= so
 PREFIX  	= .
-DEF 		=
+DEF 		= -DUSE_MPI
 
 PLATFORM	= $(shell (uname -s))
 
