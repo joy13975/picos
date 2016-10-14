@@ -415,6 +415,9 @@ fail2:
             mach_port_deallocate (mach_task_self (), object_name);
         if (!more)
             break;
+        //do not return reserved memory as on Macs, reading these will cause segfault!
+        if (info.reserved)
+            continue;
         flags = 0;
         if (info.protection & VM_PROT_READ)
             flags |= VMA_PROT_READ;
